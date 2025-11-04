@@ -1,307 +1,457 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>MidBar Finder</title>
-    
+
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
+
     <!-- Leaflet.js CSS & JS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-    
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+      crossorigin=""
+    />
+    <script
+      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+      crossorigin=""
+    ></script>
+
     <style>
-        /* Use the Inter font, a clean sans-serif */
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f4f7f6;
-        }
+      /* Use the Inter font, a clean sans serif */
+      body {
+        font-family: "Inter", sans-serif;
+        background-color: #f4f7f6;
+      }
 
-        /* Set a fixed height for the map container */
-        #map {
-            height: 100%;
-            width: 100%;
-            z-index: 10;
-        }
+      /* Make the map fill the parent and let overlays sit above it */
+      #map {
+        position: absolute;
+        inset: 0;
+        height: 100%;
+        width: 100%;
+        z-index: 10;
+      }
 
-        /* Style for the custom emoji markers */
-        .emoji-marker {
-            /* This is now a container */
-            width: 44px;
-            height: 44px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            line-height: 1; /* Fixes vertical alignment */
-        }
-        
-        .emoji-marker-bg {
-            background: rgba(255, 255, 255, 0.8);
-            border: 2px solid #333;
-            border-radius: 50%;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 28px;
-            backdrop-filter: blur(3px);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-            transition: background-color 0.3s ease; /* Animate color change */
-        }
+      /* Style for the custom emoji markers */
+      .emoji-marker {
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 1;
+      }
 
-        /* Make the main bar emoji slightly larger */
-        .emoji-marker-bar {
-            font-size: 36px;
-        }
+      .emoji-marker-bg {
+        background: rgba(255, 255, 255, 0.8);
+        border: 2px solid #333;
+        border-radius: 50%;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        backdrop-filter: blur(3px);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        transition: background-color 0.3s ease;
+      }
 
-        /* Simple loading spinner */
-        .spinner {
-            border: 4px solid rgba(255, 255, 255, 0.3);
-            border-left-color: #ffffff;
-            border-radius: 50%;
-            width: 24px;
-            height: 24px;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
+      .emoji-marker-bar {
+        font-size: 30px;
+      }
 
-        /* MOBILE: Default positioning (mobile-first) */
-        #strategyToggleContainer {
-            position: absolute;
-            bottom: 90px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 20;
+      .spinner {
+        border: 4px solid rgba(255, 255, 255, 0.3);
+        border-left-color: #ffffff;
+        border-radius: 50%;
+        width: 24px;
+        height: 24px;
+        animation: spin 1s linear infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
         }
-        
-        #backButton {
-            position: absolute;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 20;
-        }
+      }
 
-        /* DESKTOP: Override for larger screens */
-        @media (min-width: 641px) {
-            #strategyToggleContainer {
-                bottom: 20px;
-                right: 20px;
-                left: auto;
-                transform: none;
-            }
-            
-            #strategyToggleContainer > div {
-                flex-direction: row !important;
-            }
-            
-            #backButton {
-                bottom: 20px;
-                left: 20px;
-                transform: none;
-            }
-        }
+      /* Make the stat panel content wrap nicely on small screens */
+      .stats-row {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        justify-content: flex-end;
+        flex-wrap: nowrap;
+      }
+      .rank-badge {
+        min-width: 64px;
+        text-align: center;
+        font-weight: 700;
+        border-radius: 8px;
+        padding: 6px 8px;
+        background: rgba(0, 0, 0, 0.06);
+      }
+
+      /* Make arrow buttons easy to tap on mobile */
+      .rank-button {
+        min-width: 40px;
+        min-height: 40px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        font-weight: 700;
+      }
+
+      #resultsPanel,
+      #statsPanel,
+      #strategyToggleContainer {
+        font-size: 0.85rem; /* slightly smaller overall */
+      }
+
+      #resultsPanel h3,
+      #statsPanel h3 {
+        font-size: 0.9rem;
+      }
     </style>
-</head>
-<body class="h-screen w-screen overflow-hidden flex flex-col antialiased">
-
+  </head>
+  <body class="h-screen w-screen overflow-hidden flex flex-col antialiased">
     <!-- =========== Input View =========== -->
     <div id="inputView" class="w-full h-full p-4 md:p-8 overflow-y-auto">
-        <div class="max-w-2xl mx-auto bg-white p-6 md:p-8 rounded-2xl shadow-lg">
-            
-            <header class="mb-6 text-center">
-                <h1 class="text-3xl font-bold text-gray-800">🍻 MidBar Finder 🍻</h1>
-                <p class="text-gray-600 mt-2">Find the most central bar or pub to meet your friends.</p>
-            </header>
+      <div class="max-w-2xl mx-auto bg-white p-6 md:p-8 rounded-2xl shadow-lg">
+        <header class="mb-6 text-center">
+          <h1 class="text-3xl font-bold text-gray-800">🍻 MidBar Finder 🍻</h1>
+          <p class="text-gray-600 mt-2">
+            Find the most central bar or pub to meet your friends.
+          </p>
+        </header>
 
-            <!-- General Location -->
-            <div class="mb-4">
-                <label for="generalLocation" class="block text-sm font-medium text-gray-700 mb-1">General Location (Optional)</label>
-                <input type="text" id="generalLocation" placeholder="e.g., Zürich" class="w-full px-4 py-2 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                <p class="text-xs text-gray-500 mt-1">This will be added to each person's location if not already included.</p>
-            </div>
-
-            <!-- Dynamic container for person inputs -->
-            <div id="peopleContainer" class="space-y-4">
-                <!-- Person inputs will be added here by JS -->
-            </div>
-
-            <!-- Controls -->
-            <div class="mt-6 border-t pt-6">
-                <button id="addPersonButton" class="w-full sm:w-auto flex-shrink-0 px-5 py-2.5 bg-green-600 text-white rounded-lg font-semibold shadow-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 transition-all">
-                    + Add Person
-                </button>
-            </div>
-
-            <!-- Strategy Options -->
-            <div class="mt-6 border-t pt-6">
-                <label class="text-lg font-semibold text-gray-800">Optimization Strategy</label>
-                <p class="text-sm text-gray-600 mb-4">Choose how to find the "best" bar.</p>
-                <div class="space-y-3">
-                    <!-- Utilitarianism -->
-                    <div>
-                        <input type="radio" id="strategy_utilitarianism" name="strategy" value="utilitarianism" class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500" checked>
-                        <label for="strategy_utilitarianism" class="ml-3 text-gray-700">
-                            <span class="font-bold">Utilitarianism:</span> <span class="text-sm">Minimize total travel distance (sum of all distances).</span>
-                        </label>
-                    </div>
-                    <!-- Socialism -->
-                    <div>
-                        <input type="radio" id="strategy_socialism" name="strategy" value="socialism" class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500">
-                        <label for="strategy_socialism" class="ml-3 text-gray-700">
-                            <span class="font-bold">Socialism:</span> <span class="text-sm">Minimize sum of squared distances (penalizes outliers).</span>
-                        </label>
-                    </div>
-                    <!-- Capitalism -->
-                    <div>
-                        <input type="radio" id="strategy_capitalism" name="strategy" value="capitalism" class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500">
-                        <label for="strategy_capitalism" class="ml-3 text-gray-700">
-                            <span class="font-bold">Capitalism:</span> <span class="text-sm">Minimize distance difference (finds most equidistant bar).</span>
-                        </label>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Other Options -->
-            <div class="mt-6 border-t pt-6">
-                 <div class="flex items-center space-x-3">
-                    <input id="includeRestaurants" type="checkbox" class="h-5 w-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500">
-                    <label for="includeRestaurants" class="text-gray-700 font-medium">Include Restaurants</label>
-                </div>
-            </div>
-
-
-            <!-- Main Calculate Button -->
-            <div class="mt-8">
-                <button id="calculateButton" class="w-full h-16 bg-blue-600 text-white rounded-lg font-bold text-lg shadow-xl hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-500 focus:ring-opacity-50 transition-all flex items-center justify-center gap-3">
-                    <span id="calcButtonText">Calculate MidPoint</span>
-                    <div id="loadingSpinner" class="spinner hidden"></div>
-                </button>
-            </div>
-
+        <div class="mb-4">
+          <label
+            for="generalLocation"
+            class="block text-sm font-medium text-gray-700 mb-1"
+            >General Location (Optional)</label
+          >
+          <input
+            type="text"
+            id="generalLocation"
+            placeholder="e.g., Zürich"
+            class="w-full px-4 py-2 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+          />
+          <p class="text-xs text-gray-500 mt-1">
+            This will be added to each person's location if not already
+            included.
+          </p>
         </div>
+
+        <div id="peopleContainer" class="space-y-4"></div>
+
+        <div class="mt-6 border-t pt-6">
+          <button
+            id="addPersonButton"
+            class="w-full sm:w-auto flex-shrink-0 px-5 py-2.5 bg-green-600 text-white rounded-lg font-semibold shadow-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 transition-all"
+          >
+            + Add Person
+          </button>
+        </div>
+
+        <div class="mt-6 border-t pt-6">
+          <label class="text-lg font-semibold text-gray-800"
+            >Optimization Strategy</label
+          >
+          <p class="text-sm text-gray-600 mb-4">
+            Choose how to find the "best" bar.
+          </p>
+          <div class="space-y-3">
+            <div>
+              <input
+                type="radio"
+                id="strategy_utilitarianism"
+                name="strategy"
+                value="utilitarianism"
+                class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                checked
+              />
+              <label for="strategy_utilitarianism" class="ml-3 text-gray-700">
+                <span class="font-bold">Utilitarianism:</span>
+                <span class="text-sm"
+                  >Minimize total travel distance (sum of all distances).</span
+                >
+              </label>
+            </div>
+            <div>
+              <input
+                type="radio"
+                id="strategy_socialism"
+                name="strategy"
+                value="socialism"
+                class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+              />
+              <label for="strategy_socialism" class="ml-3 text-gray-700">
+                <span class="font-bold">Socialism:</span>
+                <span class="text-sm"
+                  >Minimize sum of squared distances (penalizes outliers).</span
+                >
+              </label>
+            </div>
+            <div>
+              <input
+                type="radio"
+                id="strategy_capitalism"
+                name="strategy"
+                value="capitalism"
+                class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+              />
+              <label for="strategy_capitalism" class="ml-3 text-gray-700">
+                <span class="font-bold">Capitalism:</span>
+                <span class="text-sm"
+                  >Minimize distance difference (finds most equidistant
+                  bar).</span
+                >
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-6 border-t pt-6">
+          <div class="flex items-center space-x-3">
+            <input
+              id="includeRestaurants"
+              type="checkbox"
+              class="h-5 w-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+            />
+            <label for="includeRestaurants" class="text-gray-700 font-medium"
+              >Include Restaurants</label
+            >
+          </div>
+        </div>
+
+        <div class="mt-8">
+          <button
+            id="calculateButton"
+            class="w-full h-16 bg-blue-600 text-white rounded-lg font-bold text-lg shadow-xl hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-500 focus:ring-opacity-50 transition-all flex items-center justify-center gap-3"
+          >
+            <span id="calcButtonText">Calculate MidPoint</span>
+            <div id="loadingSpinner" class="spinner hidden"></div>
+          </button>
+        </div>
+      </div>
     </div>
 
     <!-- =========== Map View =========== -->
     <div id="mapView" class="w-full h-full flex-grow relative hidden">
-        <!-- The map container -->
-        <div id="map"></div>
-        
-        <!-- Results Panel Overlay (Top-Left) -->
-        <div id="resultsPanel" class="absolute top-4 left-4 z-20 bg-white bg-opacity-90 backdrop-blur-sm p-4 rounded-lg shadow-xl text-left">
-            <span class="text-gray-600 font-medium">Best Location:</span>
-            <h3 id="barName" class="text-xl font-bold text-gray-900"></h3>
-        </div>
+      <!-- Map container -->
+      <div id="map"></div>
 
-        <!-- Stats Panel Overlay (Top-Right) -->
-        <div id="statsPanel" class="absolute top-4 right-4 z-20 bg-white bg-opacity-90 backdrop-blur-sm p-4 rounded-lg shadow-xl text-right">
-            <h3 id="totalDistanceStat" class="text-lg font-bold text-gray-900">Total: 0.00 km</h3>
-            <h3 id="weightedDistanceStat" class="text-base font-semibold text-gray-600 mt-1">Weighted: 0.00 km²</h3>
+      <!-- Results Panel Overlay top left -->
+      <div
+        id="resultsPanel"
+        class="absolute top-4 left-4 z-30 bg-white bg-opacity-90 backdrop-blur-sm p-4 rounded-lg shadow-xl text-left"
+      >
+        <span class="text-gray-600 font-medium">Best Location:</span>
+        <div class="flex flex-col items-start">
+          <h3
+            id="barName"
+            class="text-lg sm:text-xl font-bold text-gray-900"
+          ></h3>
+          <div class="flex items-center gap-2 mt-1">
+            <button
+              id="prevBarButton"
+              class="px-2 py-1 bg-gray-200 hover:bg-gray-300 rounded text-sm"
+            >
+              ←
+            </button>
+            <span id="barRank" class="text-sm text-gray-700 font-medium"
+              >#1</span
+            >
+            <button
+              id="nextBarButton"
+              class="px-2 py-1 bg-gray-200 hover:bg-gray-300 rounded text-sm"
+            >
+              →
+            </button>
+          </div>
         </div>
+      </div>
 
-        <!-- Strategy Toggle (Map View) -->
-        <div id="strategyToggleContainer" class="hidden bg-white bg-opacity-95 backdrop-blur-sm p-2 rounded-lg shadow-xl">
-            <div class="flex flex-col gap-2">
-                <button id="toggle_utilitarianism" class="strategy-toggle px-4 py-2 rounded-md font-semibold text-sm whitespace-nowrap" data-strategy="utilitarianism">Utilitarianism</button>
-                <button id="toggle_socialism" class="strategy-toggle px-4 py-2 rounded-md font-semibold text-sm whitespace-nowrap" data-strategy="socialism">Socialism</button>
-                <button id="toggle_capitalism" class="strategy-toggle px-4 py-2 rounded-md font-semibold text-sm whitespace-nowrap" data-strategy="capitalism">Capitalism</button>
-            </div>
+      <!-- Stats Panel Overlay top right -->
+      <div
+        id="statsPanel"
+        class="absolute top-4 right-4 z-30 bg-white bg-opacity-90 backdrop-blur-sm p-3 rounded-lg shadow-xl text-right"
+      >
+        <div class="stats-row">
+          <div>
+            <h3 id="totalDistanceStat" class="text-lg font-bold text-gray-900">
+              Total: 0.00 km
+            </h3>
+            <h3
+              id="weightedDistanceStat"
+              class="text-base font-semibold text-gray-600 mt-1"
+            >
+              Weighted: 0.00 km²
+            </h3>
+          </div>
         </div>
+      </div>
 
-        <!-- Back Button -->
-        <button id="backButton" class="px-6 py-3 bg-gray-800 text-white rounded-lg font-semibold shadow-xl hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-50 transition-all">
-            &larr; Back
+      <!-- Strategy Toggle container bottom right -->
+      <div
+        id="strategyToggleContainer"
+        class="hidden absolute bottom-4 right-4 z-30 bg-white bg-opacity-90 backdrop-blur-sm p-2 rounded-lg shadow-xl flex gap-1 sm:gap-2"
+      >
+        <button
+          id="toggle_utilitarianism"
+          class="strategy-toggle px-3 py-1.5 sm:px-4 sm:py-2 rounded-md font-semibold text-xs sm:text-sm"
+          data-strategy="utilitarianism"
+        >
+          Utilitarianism
         </button>
+        <button
+          id="toggle_socialism"
+          class="strategy-toggle px-3 py-1.5 sm:px-4 sm:py-2 rounded-md font-semibold text-xs sm:text-sm"
+          data-strategy="socialism"
+        >
+          Socialism
+        </button>
+        <button
+          id="toggle_capitalism"
+          class="strategy-toggle px-3 py-1.5 sm:px-4 sm:py-2 rounded-md font-semibold text-xs sm:text-sm"
+          data-strategy="capitalism"
+        >
+          Capitalism
+        </button>
+      </div>
+
+      <!-- Back Button bottom left -->
+      <button
+        id="backButton"
+        class="absolute bottom-4 left-4 z-30 px-5 py-2.5 sm:px-6 sm:py-3 bg-gray-800 text-white rounded-lg font-semibold shadow-xl hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-50 transition-all"
+      >
+        ← Back
+      </button>
     </div>
 
     <!-- =========== Error Modal =========== -->
-    <div id="errorModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-        <div class="bg-white max-w-sm w-full p-6 rounded-lg shadow-xl text-center">
-            <h3 class="text-2xl font-bold text-red-600 mb-4">Oops!</h3>
-            <p id="errorMessage" class="text-gray-700 mb-6">Something went wrong.</p>
-            <button id="closeErrorButton" class="w-full px-4 py-2 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50">
-                Close
-            </button>
-        </div>
+    <div
+      id="errorModal"
+      class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
+    >
+      <div
+        class="bg-white max-w-sm w-full p-6 rounded-lg shadow-xl text-center"
+      >
+        <h3 class="text-2xl font-bold text-red-600 mb-4">Oops!</h3>
+        <p id="errorMessage" class="text-gray-700 mb-6">
+          Something went wrong.
+        </p>
+        <button
+          id="closeErrorButton"
+          class="w-full px-4 py-2 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50"
+        >
+          Close
+        </button>
+      </div>
     </div>
 
-
-    <!-- =========== JavaScript =========== -->
     <script>
-        // --- Global Variables ---
-        let map; // Leaflet map instance
-        const mapLayers = []; // To store markers/lines for easy clearing
-        const dynamicMapLayers = []; // To store the iterative bar/line layers
-        const peopleMarkers = []; // To store L.marker instances for people
-        const personEmojis = ['😀', '😎', '🥳', '🐱', '🐶', '🦊', '🐻', '🐼', '🐨', '🐯', '🧑‍🚀', '🦸', '🥷', '🧑‍💻', '🧑‍🎨'];
-        
-        // App state
-        let geocodedPeopleList = [];
-        let allBars = [];
-        const strategyResults = {
-            utilitarianism: { bestBar: null, candidates: [], color: '#3b82f6' },
-            socialism: { bestBar: null, candidates: [], color: '#ec4899' },
-            capitalism: { bestBar: null, candidates: [], color: '#10b981' }
+      // global variables
+      let map;
+      const mapLayers = [];
+      const dynamicMapLayers = [];
+      const peopleMarkers = [];
+      const personEmojis = [
+        "😀",
+        "😎",
+        "🥳",
+        "🐱",
+        "🐶",
+        "🦊",
+        "🐻",
+        "🐼",
+        "🐨",
+        "🐯",
+        "🧑‍🚀",
+        "🦸",
+        "🥷",
+        "🧑‍💻",
+        "🧑‍🎨",
+      ];
+
+      let geocodedPeopleList = [];
+      let allBars = [];
+      const strategyResults = {
+        utilitarianism: { bestBar: null, candidates: [], color: "#3b82f6" },
+        socialism: { bestBar: null, candidates: [], color: "#ec4899" },
+        capitalism: { bestBar: null, candidates: [], color: "#10b981" },
+      };
+      let currentRankIndex = 0;
+      let currentStrategy = "utilitarianism";
+
+      // ui refs
+      const inputView = document.getElementById("inputView");
+      const mapView = document.getElementById("mapView");
+      const peopleContainer = document.getElementById("peopleContainer");
+      const addPersonButton = document.getElementById("addPersonButton");
+      const generalLocationInput = document.getElementById("generalLocation");
+      const calculateButton = document.getElementById("calculateButton");
+      const calcButtonText = document.getElementById("calcButtonText");
+      const loadingSpinner = document.getElementById("loadingSpinner");
+      const backButton = document.getElementById("backButton");
+      const barName = document.getElementById("barName");
+      const totalDistanceStat = document.getElementById("totalDistanceStat");
+      const weightedDistanceStat = document.getElementById(
+        "weightedDistanceStat"
+      );
+      const includeRestaurants = document.getElementById("includeRestaurants");
+      const strategyToggleContainer = document.getElementById(
+        "strategyToggleContainer"
+      );
+
+      // error modal
+      const errorModal = document.getElementById("errorModal");
+      const errorMessage = document.getElementById("errorMessage");
+      const closeErrorButton = document.getElementById("closeErrorButton");
+
+      // dom ready
+      document.addEventListener("DOMContentLoaded", () => {
+        addPersonInput();
+        addPersonInput();
+      });
+
+      const prevBarButton = document.getElementById("prevBarButton");
+      const nextBarButton = document.getElementById("nextBarButton");
+      const barRank = document.getElementById("barRank");
+
+      prevBarButton.onclick = () => changeBarRank(-1);
+      nextBarButton.onclick = () => changeBarRank(1);
+
+      addPersonButton.onclick = addPersonInput;
+      calculateButton.onclick = findMidBar;
+      backButton.onclick = resetApp;
+      closeErrorButton.onclick = () => errorModal.classList.add("hidden");
+
+      document.querySelectorAll(".strategy-toggle").forEach((button) => {
+        button.onclick = (e) => {
+          const s = e.currentTarget.dataset.strategy;
+          currentStrategy = s;
+          currentRankIndex = 0;
+          showStrategyResults(s); // ensures button colors update
         };
+      });
 
-        // --- DOM References ---
-        const inputView = document.getElementById('inputView');
-        const mapView = document.getElementById('mapView');
-        const peopleContainer = document.getElementById('peopleContainer');
-        const addPersonButton = document.getElementById('addPersonButton');
-        const generalLocationInput = document.getElementById('generalLocation'); // Added
-        const calculateButton = document.getElementById('calculateButton');
-        const calcButtonText = document.getElementById('calcButtonText');
-        const loadingSpinner = document.getElementById('loadingSpinner');
-        const backButton = document.getElementById('backButton');
-        const barName = document.getElementById('barName');
-        const totalDistanceStat = document.getElementById('totalDistanceStat');
-        const weightedDistanceStat = document.getElementById('weightedDistanceStat');
-        const includeRestaurants = document.getElementById('includeRestaurants');
-        const strategyToggleContainer = document.getElementById('strategyToggleContainer');
+      function addPersonInput() {
+        const personCount = peopleContainer.children.length;
+        const emoji = personEmojis[personCount % personEmojis.length];
 
-        // Error Modal
-        const errorModal = document.getElementById('errorModal');
-        const errorMessage = document.getElementById('errorMessage');
-        const closeErrorButton = document.getElementById('closeErrorButton');
+        const personDiv = document.createElement("div");
+        personDiv.className =
+          "flex items-center gap-3 p-3 bg-gray-50 rounded-lg border";
 
-
-        // --- Event Listeners ---
-        document.addEventListener('DOMContentLoaded', () => {
-            // Start with two people
-            addPersonInput();
-            addPersonInput();
-        });
-        
-        addPersonButton.onclick = addPersonInput;
-        calculateButton.onclick = findMidBar;
-        backButton.onclick = resetApp;
-        closeErrorButton.onclick = () => errorModal.classList.add('hidden');
-        
-        // Strategy toggle listeners
-        document.querySelectorAll('.strategy-toggle').forEach(button => {
-            button.onclick = (e) => showStrategyResults(e.target.dataset.strategy);
-        });
-
-
-        // --- Core Functions ---
-
-        /**
-         * Adds a new name/location input group to the form
-         */
-        function addPersonInput() {
-            const personCount = peopleContainer.children.length;
-            const emoji = personEmojis[personCount % personEmojis.length];
-
-            const personDiv = document.createElement('div');
-            personDiv.className = 'flex items-center gap-3 p-3 bg-gray-50 rounded-lg border';
-            
-            personDiv.innerHTML = `
+        personDiv.innerHTML = `
                 <span class="text-2xl">${emoji}</span>
                 <div class="flex-grow grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <input type="text" placeholder="Name (e.g., Alice)" class="w-full px-4 py-2 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" data-role="name">
@@ -310,496 +460,491 @@
                 <button class="remove-person text-red-500 hover:text-red-700 font-bold text-2xl px-2" title="Remove person">&times;</button>
             `;
 
-            const removeButton = personDiv.querySelector('.remove-person');
-            removeButton.onclick = () => {
-                // Prevent removing if only 2 people are left
-                if (peopleContainer.children.length > 2) {
-                    personDiv.remove();
-                } else {
-                    showError("You need at least two people to find a midpoint.");
-                }
-            };
+        const removeButton = personDiv.querySelector(".remove-person");
+        removeButton.onclick = () => {
+          if (peopleContainer.children.length > 2) {
+            personDiv.remove();
+          } else {
+            showError("You need at least two people to find a midpoint.");
+          }
+        };
 
-            peopleContainer.appendChild(personDiv);
-        }
+        peopleContainer.appendChild(personDiv);
+      }
 
-        /**
-         * Main orchestration function
-         */
-        async function findMidBar() {
-            showLoading(true);
-            strategyToggleContainer.classList.add('hidden'); // Hide toggles
-            
-            // 1. Collect inputs
-            const peopleInputs = [];
-            const inputDivs = peopleContainer.querySelectorAll('div');
-            const generalLocation = generalLocationInput.value.trim(); // Get general location
+      async function findMidBar() {
+        showLoading(true);
+        strategyToggleContainer.classList.add("hidden");
 
-            inputDivs.forEach((div, index) => {
-                const nameInput = div.querySelector('input[data-role="name"]');
-                const locationInput = div.querySelector('input[data-role="location"]');
-                
-                if (nameInput && locationInput && locationInput.value.trim() !== '') {
-                    
-                    let locationQuery = locationInput.value.trim();
-                    // Append general location if it's provided and not already in the query
-                    if (generalLocation !== '' && locationQuery.toLowerCase().indexOf(generalLocation.toLowerCase()) === -1) {
-                        locationQuery = `${locationQuery}, ${generalLocation}`;
-                    }
+        const peopleInputs = [];
+        const inputDivs = peopleContainer.querySelectorAll("div");
+        const generalLocation = generalLocationInput.value.trim();
 
-                    peopleInputs.push({
-                        name: nameInput.value.trim() || `Person ${index + 1}`,
-                        locationQuery: locationQuery, // Use the (potentially modified) query
-                        emoji: personEmojis[index % personEmojis.length]
-                    });
-                }
+        inputDivs.forEach((div, index) => {
+          const nameInput = div.querySelector('input[data-role="name"]');
+          const locationInput = div.querySelector(
+            'input[data-role="location"]'
+          );
+
+          if (nameInput && locationInput && locationInput.value.trim() !== "") {
+            let locationQuery = locationInput.value.trim();
+            if (
+              generalLocation !== "" &&
+              locationQuery
+                .toLowerCase()
+                .indexOf(generalLocation.toLowerCase()) === -1
+            ) {
+              locationQuery = `${locationQuery}, ${generalLocation}`;
+            }
+
+            peopleInputs.push({
+              name: nameInput.value.trim() || `Person ${index + 1}`,
+              locationQuery: locationQuery,
+              emoji: personEmojis[index % personEmojis.length],
             });
+          }
+        });
 
-            // 2. Validate inputs
-            if (peopleInputs.length < 2) {
-                showError("Please enter locations for at least two people.");
-                showLoading(false);
-                return;
-            }
-
-            try {
-                // 3. Geocode all people
-                const geocodePromises = peopleInputs.map(p => geocodeLocation(p.locationQuery));
-                const geocodedResults = await Promise.all(geocodePromises);
-
-                geocodedPeopleList = []; // Reset global list
-                for (let i = 0; i < geocodedResults.length; i++) {
-                    const result = geocodedResults[i];
-                    if (!result) {
-                        throw new Error(`Could not find location for "${peopleInputs[i].locationQuery}"`);
-                    }
-                    geocodedPeopleList.push({
-                        ...peopleInputs[i],
-                        lat: result.location.lat,
-                        lng: result.location.lng,
-                    });
-                }
-
-                // 4. Calculate bounding box
-                const lats = geocodedPeopleList.map(p => p.lat);
-                const lngs = geocodedPeopleList.map(p => p.lng);
-                
-                // Add padding to the box to ensure we find bars *around* them
-                // Increased padding to 0.1 (~11km) for "Capitalism" mode
-                const padding = 0.1;
-                const bounds = {
-                    south: Math.min(...lats) - padding,
-                    west: Math.min(...lngs) - padding,
-                    north: Math.max(...lats) + padding,
-                    east: Math.max(...lngs) + padding,
-                };
-
-                // 5. Fetch bars
-                const considerRestaurants = includeRestaurants.checked;
-                allBars = await fetchBarsInBounds(bounds, considerRestaurants); // Store in global
-
-                if (allBars.length === 0) {
-                    throw new Error("No bars or pubs found in the area between all people. Try a different location.");
-                }
-
-                // 6. Calculate all metrics for every bar
-                const initialStrategy = document.querySelector('input[name="strategy"]:checked').value;
-                
-                for (const bar of allBars) {
-                    const individualDistances = [];
-                    let totalDistance = 0;
-                    let weightedDistance = 0;
-
-                    for (const person of geocodedPeopleList) {
-                        const dist = haversineDistance(person.lat, person.lng, bar.lat, bar.lng);
-                        individualDistances.push(dist);
-                        totalDistance += dist;
-                        weightedDistance += dist * dist;
-                    }
-                    
-                    bar.totalDistance = totalDistance;
-                    bar.weightedDistance = weightedDistance;
-                    bar.individualDistances = individualDistances; // Store this
-
-                    // Calculate variance for "Capitalism"
-                    const mean = totalDistance / individualDistances.length;
-                    let variance = 0;
-                    for (const dist of individualDistances) {
-                        variance += (dist - mean) * (dist - mean);
-                    }
-                    bar.distanceVariance = variance / individualDistances.length;
-                }
-
-                // 7. Find best bars and candidates for ALL strategies
-                Object.keys(strategyResults).forEach(strategyName => {
-                    let sortedBars;
-                    switch (strategyName) {
-                        case 'socialism':
-                            sortedBars = [...allBars].sort((a, b) => a.weightedDistance - b.weightedDistance);
-                            break;
-                        case 'capitalism':
-                            sortedBars = [...allBars].sort((a, b) => a.distanceVariance - b.distanceVariance);
-                            break;
-                        case 'utilitarianism':
-                        default:
-                            sortedBars = [...allBars].sort((a, b) => a.totalDistance - b.totalDistance);
-                            break;
-                    }
-                    strategyResults[strategyName].bestBar = sortedBars[0];
-                    strategyResults[strategyName].candidates = sortedBars.slice(0, 20).reverse(); // 20th best to best
-                });
-
-                // 8. Switch to map view and display results
-                inputView.classList.add('hidden');
-                mapView.classList.remove('hidden');
-                
-                initializeMap();
-
-                // Add people markers *once*
-                addPeopleMarkers();
-                
-                // Fit map to show everyone
-                const mapBounds = geocodedPeopleList.map(p => [p.lat, p.lng]);
-                map.fitBounds(mapBounds, { padding: [100, 100] }); // Added more padding
-                
-                // 9. Run the animation for the INITIALLY selected strategy
-                const initialCandidates = strategyResults[initialStrategy].candidates;
-                const initialColor = strategyResults[initialStrategy].color;
-
-                for (let i = 0; i < initialCandidates.length; i++) {
-                    const bar = initialCandidates[i];
-                    
-                    // Update the map visualization
-                    updateBestBarOnMap(bar, initialColor);
-                    
-                    // Pause to show the update.
-                    // Make the delay shorter as we get closer to the best
-                    const delayTime = i < 10 ? 150 : (i < 15 ? 100 : 75);
-                    await delay(delayTime);
-                }
-
-                // 10. Show final results and toggles
-                showStrategyResults(initialStrategy); // Show final state
-                strategyToggleContainer.classList.remove('hidden'); // Show toggles
-
-            } catch (error) {
-                console.error("Error finding midpoint:", error);
-                showError(error.message);
-            } finally {
-                showLoading(false);
-            }
+        if (peopleInputs.length < 2) {
+          showError("Please enter locations for at least two people.");
+          showLoading(false);
+          return;
         }
 
-        /**
-         * Initializes or re-initializes the Leaflet map
-         */
-        function initializeMap() {
-            // If map already exists, remove it before re-initializing
-            if (map) {
-                map.remove();
-                map = null;
+        try {
+          const geocodePromises = peopleInputs.map((p) =>
+            geocodeLocation(p.locationQuery)
+          );
+          const geocodedResults = await Promise.all(geocodePromises);
+
+          geocodedPeopleList = [];
+          for (let i = 0; i < geocodedResults.length; i++) {
+            const result = geocodedResults[i];
+            if (!result) {
+              throw new Error(
+                `Could not find location for "${peopleInputs[i].locationQuery}"`
+              );
             }
-
-            map = L.map('map').setView([47.3769, 8.5417], 13); // Default to Zurich
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            }).addTo(map);
-
-            // Invalidate size to fix tile loading issue when div is hidden
-            map.invalidateSize();
-        }
-
-        /**
-         * Clears all old markers and lines from the map
-         */
-        function clearMap() {
-            for (const layer of mapLayers) {
-                map.removeLayer(layer);
-            }
-            mapLayers.length = 0; // Clear the array
-
-            for (const layer of dynamicMapLayers) {
-                map.removeLayer(layer);
-            }
-            dynamicMapLayers.length = 0; // Clear the array
-        }
-
-        /**
-         * Adds markers for people only, from the global list
-         */
-        function addPeopleMarkers() {
-            clearMap(); // Clear everything first
-            peopleMarkers.length = 0; // Clear marker array
-
-            geocodedPeopleList.forEach(person => {
-                const icon = L.divIcon({
-                    className: 'emoji-marker',
-                    // Note the nested structure for styling the background
-                    html: `<div class="emoji-marker-bg">${person.emoji}</div>`,
-                    iconSize: [44, 44],
-                    iconAnchor: [22, 22]
-                });
-
-                const marker = L.marker([person.lat, person.lng], { icon })
-                    .addTo(map)
-                    .bindPopup(person.name); // Popup content will be updated later
-                mapLayers.push(marker);
-                peopleMarkers.push(marker); // Store for later updates
+            geocodedPeopleList.push({
+              ...peopleInputs[i],
+              lat: result.location.lat,
+              lng: result.location.lng,
             });
-        }
+          }
 
+          const lats = geocodedPeopleList.map((p) => p.lat);
+          const lngs = geocodedPeopleList.map((p) => p.lng);
 
-        /**
-         * Clears old bar/lines and adds new ones for the current best bar
-         * @param {object} bar - The bar object
-         * @param {string} color - The hex color for the lines
-         */
-        function updateBestBarOnMap(bar, color) {
-            // Clear previous dynamic layers (bar + lines)
-            while (dynamicMapLayers.length > 0) {
-                map.removeLayer(dynamicMapLayers.pop());
+          const padding = 0.1;
+          const bounds = {
+            south: Math.min(...lats) - padding,
+            west: Math.min(...lngs) - padding,
+            north: Math.max(...lats) + padding,
+            east: Math.max(...lngs) + padding,
+          };
+
+          const considerRestaurants = includeRestaurants.checked;
+          allBars = await fetchBarsInBounds(bounds, considerRestaurants);
+
+          if (allBars.length === 0) {
+            throw new Error(
+              "No bars or pubs found in the area between all people. Try a different location."
+            );
+          }
+
+          const initialStrategy = document.querySelector(
+            'input[name="strategy"]:checked'
+          ).value;
+
+          for (const bar of allBars) {
+            const individualDistances = [];
+            let totalDistance = 0;
+            let weightedDistance = 0;
+
+            for (const person of geocodedPeopleList) {
+              const dist = haversineDistance(
+                person.lat,
+                person.lng,
+                bar.lat,
+                bar.lng
+              );
+              individualDistances.push(dist);
+              totalDistance += dist;
+              weightedDistance += dist * dist;
             }
 
-            // Update the results panel
-            barName.textContent = bar.name;
-            totalDistanceStat.textContent = `Total: ${bar.totalDistance.toFixed(2)} km`;
-            weightedDistanceStat.textContent = `Weighted: ${bar.weightedDistance.toFixed(2)} km²`;
+            bar.totalDistance = totalDistance;
+            bar.weightedDistance = weightedDistance;
+            bar.individualDistances = individualDistances;
 
-            // Add lines from person to bar
-            geocodedPeopleList.forEach(person => {
-                const line = L.polyline(
-                    [[person.lat, person.lng], [bar.lat, bar.lng]], 
-                    { color: color, weight: 3, opacity: 0.8, dashArray: '8, 8' }
-                ).addTo(map);
-                dynamicMapLayers.push(line);
-            });
+            const mean = totalDistance / individualDistances.length;
+            let variance = 0;
+            for (const dist of individualDistances) {
+              variance += (dist - mean) * (dist - mean);
+            }
+            bar.distanceVariance = variance / individualDistances.length;
+          }
 
-            // Add bar marker
-            const barIcon = L.divIcon({
-                className: 'emoji-marker emoji-marker-bar',
-                html: '🍻',
-                iconSize: [44, 44],
-                iconAnchor: [22, 22]
-            });
+          // find best bars and candidates
+          Object.keys(strategyResults).forEach((strategyName) => {
+            let sortedBars;
+            switch (strategyName) {
+              case "socialism":
+                sortedBars = [...allBars].sort(
+                  (a, b) => a.weightedDistance - b.weightedDistance
+                );
+                break;
+              case "capitalism":
+                sortedBars = [...allBars].sort(
+                  (a, b) => a.distanceVariance - b.distanceVariance
+                );
+                break;
+              case "utilitarianism":
+              default:
+                sortedBars = [...allBars].sort(
+                  (a, b) => a.totalDistance - b.totalDistance
+                );
+                break;
+            }
+            strategyResults[strategyName].bestBar = sortedBars[0];
+            // store best first
+            strategyResults[strategyName].candidates = sortedBars.slice(0, 20);
+          });
 
-            const barMarker = L.marker([bar.lat, bar.lng], { icon: barIcon, zIndexOffset: 1000 })
-                .addTo(map)
-                .bindPopup(`
+          // switch view
+          inputView.classList.add("hidden");
+          mapView.classList.remove("hidden");
+
+          initializeMap();
+
+          addPeopleMarkers();
+
+          const mapBounds = geocodedPeopleList.map((p) => [p.lat, p.lng]);
+          map.fitBounds(mapBounds, { padding: [100, 100] });
+
+          // run animation from worst candidate to best candidate
+          const initialCandidates = strategyResults[initialStrategy].candidates;
+          const initialColor = strategyResults[initialStrategy].color;
+
+          // if no candidates then just show results instantly
+          if (initialCandidates.length > 0) {
+            // animate from last to first
+            for (let i = initialCandidates.length - 1; i >= 0; i--) {
+              const bar = initialCandidates[i];
+              updateBestBarOnMap(bar, initialColor);
+              const delayTime = i < 2 ? 150 : i < 7 ? 120 : 80;
+              await delay(delayTime);
+            }
+          }
+
+          // set current strategy and rank defaults
+          currentStrategy = initialStrategy;
+          currentRankIndex = 0;
+
+          // reveal toggles and set styles
+          strategyToggleContainer.classList.remove("hidden");
+          showStrategyResults(currentStrategy);
+          displayCandidate(currentStrategy, currentRankIndex);
+        } catch (error) {
+          console.error("Error finding midpoint:", error);
+          showError(error.message);
+        } finally {
+          showLoading(false);
+        }
+      }
+
+      function initializeMap() {
+        if (map) {
+          map.remove();
+          map = null;
+        }
+        // default to zurich if no data
+        map = L.map("map").setView([47.3769, 8.5417], 13);
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          attribution: "&copy; OpenStreetMap contributors",
+        }).addTo(map);
+        map.invalidateSize();
+      }
+
+      function clearMap() {
+        for (const layer of mapLayers) {
+          map.removeLayer(layer);
+        }
+        mapLayers.length = 0;
+
+        for (const layer of dynamicMapLayers) {
+          map.removeLayer(layer);
+        }
+        dynamicMapLayers.length = 0;
+      }
+
+      function addPeopleMarkers() {
+        clearMap();
+        peopleMarkers.length = 0;
+
+        geocodedPeopleList.forEach((person) => {
+          const icon = L.divIcon({
+            className: "emoji-marker",
+            html: `<div class="emoji-marker-bg">${person.emoji}</div>`,
+            iconSize: [44, 44],
+            iconAnchor: [22, 22],
+          });
+
+          const marker = L.marker([person.lat, person.lng], { icon })
+            .addTo(map)
+            .bindPopup(person.name);
+          mapLayers.push(marker);
+          peopleMarkers.push(marker);
+        });
+      }
+
+      function updateBestBarOnMap(bar, color) {
+        while (dynamicMapLayers.length > 0) {
+          map.removeLayer(dynamicMapLayers.pop());
+        }
+
+        barName.textContent = bar.name;
+        totalDistanceStat.textContent = `Total: ${bar.totalDistance.toFixed(
+          2
+        )} km`;
+        weightedDistanceStat.textContent = `Weighted: ${bar.weightedDistance.toFixed(
+          2
+        )} km²`;
+
+        geocodedPeopleList.forEach((person) => {
+          const line = L.polyline(
+            [
+              [person.lat, person.lng],
+              [bar.lat, bar.lng],
+            ],
+            { color: color, weight: 3, opacity: 0.8, dashArray: "8, 8" }
+          ).addTo(map);
+          dynamicMapLayers.push(line);
+        });
+
+        const barIcon = L.divIcon({
+          className: "emoji-marker emoji-marker-bar",
+          html: "🍻",
+          iconSize: [44, 44],
+          iconAnchor: [22, 22],
+        });
+
+        const barMarker = L.marker([bar.lat, bar.lng], {
+          icon: barIcon,
+          zIndexOffset: 1000,
+        }).addTo(map).bindPopup(`
                     <b>${bar.name}</b>
                     <br>Total Dist: ${bar.totalDistance.toFixed(2)} km
                     <br>Weighted: ${bar.weightedDistance.toFixed(2)} km²
                     <br>Variance: ${bar.distanceVariance.toFixed(2)}
                 `);
-            
-            dynamicMapLayers.push(barMarker);
+
+        dynamicMapLayers.push(barMarker);
+      }
+
+      function changeBarRank(direction) {
+        const candidates = strategyResults[currentStrategy].candidates;
+        if (!candidates.length) return;
+
+        currentRankIndex += direction;
+        if (currentRankIndex < 0) currentRankIndex = 0;
+        if (currentRankIndex >= candidates.length)
+          currentRankIndex = candidates.length - 1;
+
+        const bar = candidates[candidates.length - 1 - currentRankIndex]; // reverse order
+        const color = strategyResults[currentStrategy].color;
+
+        updateBestBarOnMap(bar, color);
+        barRank.textContent = `#${currentRankIndex + 1}`;
+      }
+
+      // show results for a strategy but do not change the rank index
+      function showStrategyResults(strategyName) {
+        currentStrategy = strategyName;
+        currentRankIndex = 0;
+
+        const { bestBar, candidates, color } = strategyResults[strategyName];
+        if (!bestBar) return;
+
+        // Update map with best bar (rank #1)
+        updateBestBarOnMap(bestBar, color);
+        barRank.textContent = "#1";
+
+        // Highlight selected toggle button properly
+        document.querySelectorAll(".strategy-toggle").forEach((button) => {
+          if (button.dataset.strategy === strategyName) {
+            button.style.backgroundColor = color;
+            button.style.color = "white";
+            button.classList.add("ring", "ring-offset-2");
+          } else {
+            button.style.backgroundColor = "#f3f4f6"; // gray-100
+            button.style.color = "#374151"; // gray-700
+            button.classList.remove("ring", "ring-offset-2");
+          }
+        });
+
+        // Update the rest (person markers, popups)
+        updatePeopleMarkerColors(bestBar);
+        updatePeoplePopups(bestBar);
+      }
+
+      // displays candidate by index for given strategy
+      function displayCandidate(strategyName, rankIndex) {
+        const cands = strategyResults[strategyName].candidates;
+        if (!cands || cands.length === 0) return;
+
+        // ensure within bounds
+        rankIndex = Math.max(0, Math.min(cands.length - 1, rankIndex));
+        currentRankIndex = rankIndex;
+
+        const bar = cands[rankIndex];
+        const color = strategyResults[strategyName].color;
+
+        updateBestBarOnMap(bar, color);
+        updatePeopleMarkerColors(bar);
+        updatePeoplePopups(bar);
+
+        // find bar marker and open popup
+        const barMarker = dynamicMapLayers.find(
+          (layer) => layer.options && layer.options.zIndexOffset === 1000
+        );
+        if (barMarker) barMarker.openPopup();
+
+        // update rank badge text, ranks shown as 1 is best
+        barRank.textContent = `#${currentRankIndex + 1}`;
+      }
+
+      function updatePeopleMarkerColors(bestBar) {
+        const distances = bestBar.individualDistances;
+        if (!distances || distances.length === 0) return;
+
+        const min = Math.min(...distances);
+        const max = Math.max(...distances);
+        const range = max - min;
+
+        if (range === 0) {
+          peopleMarkers.forEach((marker) => {
+            const el = marker.getElement();
+            if (!el) return;
+            const bgDiv = el.querySelector(".emoji-marker-bg");
+            if (bgDiv) bgDiv.style.backgroundColor = "hsl(120, 70%, 80%)";
+          });
+          return;
         }
 
-        /**
-         * This function is called AFTER animation, or on toggle click.
-         * It instantly shows the result for a given strategy.
-         * @param {string} strategyName - "utilitarianism", "socialism", or "capitalism"
-         */
-        function showStrategyResults(strategyName) {
-            const { bestBar, color } = strategyResults[strategyName];
+        distances.forEach((dist, index) => {
+          const marker = peopleMarkers[index];
+          if (!marker) return;
+          const normalized = (dist - min) / range;
+          const hue = (1 - normalized) * 120;
+          const el = marker.getElement();
+          if (!el) return;
+          const bgDiv = el.querySelector(".emoji-marker-bg");
+          if (bgDiv) bgDiv.style.backgroundColor = `hsl(${hue}, 70%, 80%)`;
+        });
+      }
 
-            if (!bestBar) return;
+      function updatePeoplePopups(bestBar) {
+        const distances = bestBar.individualDistances;
+        if (!distances) return;
 
-            // 1. Update the bar and lines
-            updateBestBarOnMap(bestBar, color);
-            
-            // 2. Open the bar's popup
-            const barMarker = dynamicMapLayers.find(layer => layer.options.zIndexOffset === 1000);
-            if (barMarker) barMarker.openPopup();
+        distances.forEach((dist, index) => {
+          const marker = peopleMarkers[index];
+          const person = geocodedPeopleList[index];
+          if (!marker || !person) return;
 
-            // 3. Update person marker colors
-            updatePeopleMarkerColors(bestBar);
-
-            // 4. Update person marker popups
-            updatePeoplePopups(bestBar);
-
-            // 5. Update toggle button styles
-            document.querySelectorAll('.strategy-toggle').forEach(button => {
-                if (button.dataset.strategy === strategyName) {
-                    button.style.backgroundColor = color;
-                    button.style.color = 'white';
-                } else {
-                    button.style.backgroundColor = '#e5e7eb'; // gray-200
-                    button.style.color = '#374151'; // gray-700
-                }
-            });
-        }
-
-        /**
-         * Updates the background color of people markers based on their distance to the bar
-         */
-        function updatePeopleMarkerColors(bestBar) {
-            const distances = bestBar.individualDistances;
-            if (!distances || distances.length === 0) return;
-
-            const min = Math.min(...distances);
-            const max = Math.max(...distances);
-            const range = max - min;
-
-            // Handle case where all distances are equal
-            if (range === 0) {
-                peopleMarkers.forEach(marker => {
-                    const bgDiv = marker.getElement().querySelector('.emoji-marker-bg');
-                    bgDiv.style.backgroundColor = 'hsl(120, 70%, 80%)'; // All green
-                });
-                return;
-            }
-
-            distances.forEach((dist, index) => {
-                const marker = peopleMarkers[index];
-                if (!marker) return;
-                
-                // Normalize 0 (best) to 1 (worst)
-                const normalized = (dist - min) / range;
-                
-                // Convert 0 (green) to 120 (red)
-                // HSL: hue(0-120), saturation(70%), lightness(80% -> light)
-                const hue = (1 - normalized) * 120;
-                
-                const bgDiv = marker.getElement().querySelector('.emoji-marker-bg');
-                bgDiv.style.backgroundColor = `hsl(${hue}, 70%, 80%)`;
-            });
-        }
-
-        /**
-         * Updates the popup content for each person with their distance to the bar
-         */
-        function updatePeoplePopups(bestBar) {
-            const distances = bestBar.individualDistances;
-            if (!distances) return;
-
-            distances.forEach((dist, index) => {
-                const marker = peopleMarkers[index];
-                const person = geocodedPeopleList[index];
-                if (!marker || !person) return;
-
-                marker.unbindPopup(); // Remove old
-                marker.bindPopup(`
+          marker.unbindPopup();
+          marker.bindPopup(`
                     <b>${person.name}</b>
                     <br>Distance: ${dist.toFixed(2)} km
                 `);
-            });
+        });
+      }
+
+      function addMapMarkers(people, bar) {
+        addPeopleMarkers();
+        showStrategyResults("utilitarianism");
+      }
+
+      function resetApp() {
+        mapView.classList.add("hidden");
+        inputView.classList.remove("hidden");
+        strategyToggleContainer.classList.add("hidden");
+
+        geocodedPeopleList = [];
+        allBars = [];
+        peopleMarkers.length = 0;
+        Object.keys(strategyResults).forEach((key) => {
+          strategyResults[key].bestBar = null;
+          strategyResults[key].candidates = [];
+        });
+
+        clearMap();
+      }
+
+      function showLoading(isLoading) {
+        if (isLoading) {
+          calculateButton.disabled = true;
+          calcButtonText.classList.add("hidden");
+          loadingSpinner.classList.remove("hidden");
+        } else {
+          calculateButton.disabled = false;
+          calcButtonText.classList.remove("hidden");
+          loadingSpinner.classList.add("hidden");
         }
+      }
 
+      function showError(message) {
+        errorMessage.textContent = message;
+        errorModal.classList.remove("hidden");
+      }
 
-        /**
-         * Replaces the old addMapMarkers function.
-         * We keep this structure in case it's called from somewhere else,
-         * but it's now split into addPeopleMarkers and updateBestBarOnMap.
-         */
-        function addMapMarkers(people, bar) {
-            addPeopleMarkers(); // Now uses global
-            showStrategyResults('utilitarianism'); // Default to showing this
-        }
+      async function delay(ms) {
+        return new Promise((resolve) => setTimeout(resolve, ms));
+      }
 
-        /**
-         * Resets the app back to the input view
-         */
-        function resetApp() {
-            mapView.classList.add('hidden');
-            inputView.classList.remove('hidden');
-            strategyToggleContainer.classList.add('hidden'); // Hide toggles
+      function haversineDistance(lat1, lon1, lat2, lon2) {
+        const R = 6371;
+        const dLat = ((lat2 - lat1) * Math.PI) / 180;
+        const dLon = ((lon2 - lon1) * Math.PI) / 180;
+        const a =
+          Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+          Math.cos((lat1 * Math.PI) / 180) *
+            Math.cos((lat2 * Math.PI) / 180) *
+            Math.sin(dLon / 2) *
+            Math.sin(dLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c;
+      }
 
-            // Clear state
-            geocodedPeopleList = [];
-            allBars = [];
-            peopleMarkers.length = 0;
-            Object.keys(strategyResults).forEach(key => {
-                strategyResults[key].bestBar = null;
-                strategyResults[key].candidates = [];
-            });
-            
-            clearMap();
-        }
+      async function geocodeLocation(query) {
+        const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(
+          query
+        )}&limit=1`;
 
-        // --- Utility Functions ---
+        const response = await fetch(url);
+        if (!response.ok)
+          throw new Error(`Network error while geocoding "${query}"`);
+        const data = await response.json();
+        if (!data.features || data.features.length === 0) return null;
 
-        /**
-         * Toggles the loading state of the calculate button
-         */
-        function showLoading(isLoading) {
-            if (isLoading) {
-                calculateButton.disabled = true;
-                calcButtonText.classList.add('hidden');
-                loadingSpinner.classList.remove('hidden');
-            } else {
-                calculateButton.disabled = false;
-                calcButtonText.classList.remove('hidden');
-                loadingSpinner.classList.add('hidden');
-            }
-        }
+        const name = data.features[0].properties.name;
+        const { coordinates } = data.features[0].geometry;
+        return {
+          location: { lat: coordinates[1], lng: coordinates[0] },
+          name,
+        };
+      }
 
-        /**
-         * Shows the custom error modal with a message
-         */
-        function showError(message) {
-            errorMessage.textContent = message;
-            errorModal.classList.remove('hidden');
-        }
+      async function fetchBarsInBounds(bounds, restaurantsConsidered = false) {
+        const overpassUrl = "https://overpass-api.de/api/interpreter";
 
-        /**
-         * Simple async delay utility
-         */
-        async function delay(ms) {
-            return new Promise(resolve => setTimeout(resolve, ms));
-        }
+        const locationTypes = ["bar", "pub"];
+        if (restaurantsConsidered) locationTypes.push("restaurant");
 
-        /**
-         * Calculates straight-line distance between two lat/lng points (Haversine formula)
-         * @returns {number} Distance in kilometers
-         */
-        function haversineDistance(lat1, lon1, lat2, lon2) {
-            const R = 6371; // Radius of Earth in km
-            const dLat = (lat2 - lat1) * Math.PI / 180;
-            const dLon = (lon2 - lon1) * Math.PI / 180;
-            const a =
-                Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                Math.sin(dLon / 2) * Math.sin(dLon / 2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-            return R * c;
-        }
+        const boundsStr = `${bounds.south},${bounds.west},${bounds.north},${bounds.east}`;
 
-        // --- API Functions (from your provided code) ---
-
-        /**
-         * Geocodes a location query using the Photon API.
-         * (Adapted from your code to remove bounds logic, as global search is better for finding people)
-         */
-        async function geocodeLocation(query) {
-            const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=1`;
-            
-            const response = await fetch(url);
-            if (!response.ok) throw new Error(`Network error while geocoding "${query}"`);
-            const data = await response.json();
-            if (!data.features || data.features.length === 0) return null;
-
-            const name = data.features[0].properties.name;
-            const { coordinates } = data.features[0].geometry;
-            return {
-                location: { lat: coordinates[1], lng: coordinates[0] },
-                name,
-            };
-        }
-
-        /**
-         * Fetches bars, pubs, and optionally restaurants within a given bounds.
-         * (Adapted from your code to accept dynamic bounds and restaurant toggle)
-         */
-        async function fetchBarsInBounds(bounds, restaurantsConsidered = false) {
-            const overpassUrl = "https://overpass-api.de/api/interpreter";
-
-            const locationTypes = ["bar", "pub"];
-            if (restaurantsConsidered) locationTypes.push("restaurant");
-
-            // Format bounds for Overpass query
-            const boundsStr = `${bounds.south},${bounds.west},${bounds.north},${bounds.east}`;
-
-            const query = `
+        const query = `
                 [out:json][timeout:100];
                 (
                   ${locationTypes
@@ -809,39 +954,34 @@
                 out body;
             `;
 
-            const response = await fetch(overpassUrl, {
-                method: "POST",
-                body: query,
-            });
+        const response = await fetch(overpassUrl, {
+          method: "POST",
+          body: query,
+        });
 
-            if (!response.ok)
-                throw new Error("Failed to fetch bars from OpenStreetMap (Overpass API). The server might be busy.");
-            const data = await response.json();
+        if (!response.ok)
+          throw new Error(
+            "Failed to fetch bars from OpenStreetMap (Overpass API). The server might be busy."
+          );
+        const data = await response.json();
 
-            const bars = data.elements
-                .filter((el) => el.tags && el.tags.name)
-                .map((el) => ({
-                    name: el.tags.name,
-                    city: el.tags["addr:city"] || "",
-                    lat: el.lat,
-                    lng: el.lon,
-                }));
+        const bars = data.elements
+          .filter((el) => el.tags && el.tags.name)
+          .map((el) => ({
+            name: el.tags.name,
+            city: el.tags["addr:city"] || "",
+            lat: el.lat,
+            lng: el.lon,
+          }));
 
-            // We can check for 0 bars, the "fewer than 2" check isn't strictly needed here
-            if (bars.length === 0) {
-                throw new Error(
-                    "No bars, pubs, or restaurants found in the area. Try expanding your search or including restaurants."
-                );
-            }
-
-            return bars;
+        if (bars.length === 0) {
+          throw new Error(
+            "No bars, pubs, or restaurants found in the area. Try expanding your search or including restaurants."
+          );
         }
 
+        return bars;
+      }
     </script>
-
-</body>
+  </body>
 </html>
-
-
-
-
